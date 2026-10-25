@@ -1,5 +1,5 @@
 // ===== MINIJUEGO: SALTO DE VIGAS (SKY JUMP / ESTILO DOODLE POU) =====
-// El colega sube saltando por vigas y plataformas metálicas de Alcoa.
+// Iván sube saltando por vigas y plataformas metálicas de Alcoa.
 // Control táctil: pulsa a la izquierda o derecha de la pantalla para moverlo.
 
 import { openMinigame, showResult, saveRecord } from './ui.js';

@@ -1,7 +1,7 @@
 // ===== ESTADO DEL JUEGO Y PERSISTENCIA (GUARDADO DIRECTO SIN USUARIOS) =====
 import { CONFIG } from './config.js';
 
-const SAVE_KEY = 'colega-save-v1';
+const SAVE_KEY = 'ivan-save-v1';
 const DECAY = { comida: 0.5, energia: 0.3, diversion: 0.6, higiene: 0.4 };
 const SLEEP_GAIN = 3;
 
@@ -23,11 +23,12 @@ function defaults() {
 
 function loadState() {
   try {
-    let raw = localStorage.getItem(SAVE_KEY);
+    let raw = localStorage.getItem(SAVE_KEY) || localStorage.getItem('colega-save-v1');
     if (!raw) {
-      const activeUser = localStorage.getItem('colega-active-user');
+      const activeUser = localStorage.getItem('ivan-active-user') || localStorage.getItem('colega-active-user');
       if (activeUser) {
-        raw = localStorage.getItem(`colega-save-u_${encodeURIComponent(activeUser.toLowerCase().trim())}`);
+        raw = localStorage.getItem(`ivan-save-u_${encodeURIComponent(activeUser.toLowerCase().trim())}`) ||
+              localStorage.getItem(`colega-save-u_${encodeURIComponent(activeUser.toLowerCase().trim())}`);
       }
     }
 

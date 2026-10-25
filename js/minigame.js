@@ -1,5 +1,5 @@
 // ===== MINIJUEGO: ATRAPA LA COMIDA =====
-// Mueve al colega con el dedo, atrapa la comida (+1) y esquiva el IRPF (-3).
+// Mueve a Iván con el dedo, atrapa la comida (+1) y esquiva el IRPF (-3).
 // Al terminar devuelve la puntuación (= monedas ganadas).
 
 import { CONFIG } from './config.js';

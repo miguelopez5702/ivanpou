@@ -1,7 +1,7 @@
 // ===== UTILIDADES COMUNES DE LOS MINIJUEGOS =====
 // Preparación del lienzo a pantalla completa, botón "Salir", pantalla de resultados y récords.
 
-const RECORDS_KEY = 'colega-records-v1';
+const RECORDS_KEY = 'ivan-records-v1';
 
 // Abre la capa del minijuego y devuelve el lienzo listo para dibujar (con soporte retina)
 export function openMinigame() {
@@ -28,7 +28,7 @@ export function openMinigame() {
 // Guarda el récord de un juego y devuelve { best, isNew }
 export function saveRecord(gameId, score) {
   let records = {};
-  try { records = JSON.parse(localStorage.getItem(RECORDS_KEY)) || {}; } catch { /* datos dañados */ }
+  try { records = JSON.parse(localStorage.getItem(RECORDS_KEY) || localStorage.getItem('colega-records-v1')) || {}; } catch { /* datos dañados */ }
   const prev = records[gameId] || 0;
   const isNew = score > prev;
   if (isNew) {

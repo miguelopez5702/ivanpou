@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
-  <!-- Placeholder: sustituir por la foto recortada del colega (PNG transparente) -->
-  <ellipse cx="100" cy="115" rx="80" ry="75" fill="#c68642"/>
-  <circle cx="72" cy="95" r="16" fill="#fff"/><circle cx="128" cy="95" r="16" fill="#fff"/>
-  <circle cx="75" cy="98" r="7" fill="#222"/><circle cx="125" cy="98" r="7" fill="#222"/>
-  <path d="M70 140 Q100 165 130 140" stroke="#222" stroke-width="6" fill="none" stroke-linecap="round"/>
-</svg>

@@ -2,7 +2,7 @@
 // No requiere archivos MP3 externos. Sintetiza efectos de audio en tiempo real.
 
 let ctx = null;
-let isMuted = localStorage.getItem('colega-muted') === 'true';
+let isMuted = (localStorage.getItem('ivan-muted') || localStorage.getItem('colega-muted')) === 'true';
 
 function getContext() {
   if (!ctx) {
@@ -21,11 +21,11 @@ export function isAudioMuted() {
 
 export function toggleAudioMute() {
   isMuted = !isMuted;
-  localStorage.setItem('colega-muted', isMuted);
+  localStorage.setItem('ivan-muted', isMuted);
   return isMuted;
 }
 
-// Sonido de bote / resorte al tocar al colega
+// Sonido de bote / resorte al tocar a Iván
 export function playBoing() {
   if (isMuted) return;
   const c = getContext();

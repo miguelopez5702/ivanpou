@@ -1,5 +1,5 @@
 // ===== CONFIGURACIÓN PERSONALIZABLE =====
-// Aquí se cambia todo lo relativo a tu colega sin tocar la lógica.
+// Aquí se cambia la configuración de Iván sin tocar la lógica.
 
 export const CONFIG = {
   nombre: 'Iván',

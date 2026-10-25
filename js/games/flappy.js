@@ -1,4 +1,4 @@
-// ===== MINIJUEGO: FLAPPY COLEGA (VUELO EN ALCOA) =====
+// ===== MINIJUEGO: FLAPPY IVÁN (VUELO EN ALCOA) =====
 // Toca la pantalla para aletear y esquivar chimeneas y tuberías industriales.
 
 import { openMinigame, showResult, saveRecord } from './ui.js';
@@ -308,7 +308,7 @@ export function startFlappy(imgSrc, onEnd) {
 
     // HUD
     hud.innerHTML = `
-      <div style="font-size:12px; color:#ffd24c; letter-spacing:1px;">🕊️ FLAPPY COLEGA EN ALCOA</div>
+      <div style="font-size:12px; color:#ffd24c; letter-spacing:1px;">🕊️ FLAPPY IVÁN EN ALCOA</div>
       <div style="font-size:24px; font-weight:bold; margin-top:2px;">
         Puntuación: <strong>${score}</strong>
       </div>
@@ -331,7 +331,7 @@ export function startFlappy(imgSrc, onEnd) {
     cv.removeEventListener('pointerdown', flap);
     const coinsEarned = score * 2 + (score >= 5 ? 5 : 0);
     showResult({
-      kicker: 'FLAPPY COLEGA',
+      kicker: 'FLAPPY IVÁN',
       title: score > 0 ? '¡Buen vuelo por Alcoa! 🕊️' : '¡Hostia contra la tubería! 💥',
       lines: [`Tuberías superadas: <strong>${score}</strong>`],
       coins: coinsEarned,

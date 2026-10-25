@@ -160,7 +160,7 @@ function updateHud() {
   document.body.classList.toggle('dark', state.durmiendo);
 }
 
-// Comprueba si unas coordenadas caen sobre el colega
+// Comprueba si unas coordenadas caen sobre Iván
 function isOverChar(x, y) {
   const r = charEl.getBoundingClientRect();
   return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
@@ -177,7 +177,7 @@ function spawnParticle(emoji, x, y) {
   setTimeout(() => p.remove(), 700);
 }
 
-// Sistema para arrastrar comida / esponja / farlopa al colega
+// Sistema para arrastrar comida / esponja / farlopa a Iván
 function makeDraggable(btnEl, { icon, isImg = false, onOver, onDrop, onClick }) {
   let isDragging = false;
   let startX = 0, startY = 0;
@@ -724,8 +724,8 @@ const MINIGAMES = [
   {
     id: 'flappy',
     icon: '🕊️',
-    title: 'Flappy Colega',
-    desc: 'Vuelo entre chimeneas de Alcoa',
+    title: 'Flappy Iván',
+    desc: 'Vuelo de Iván entre chimeneas de Alcoa',
     reward: '🪙 +2 por tubería',
     energyCost: 10,
     launch: () => startFlappy(CONFIG.imagenes.normal, coins => {
@@ -770,7 +770,7 @@ function renderJuegos(el) {
   hub.className = 'games-hub';
 
   let records = {};
-  try { records = JSON.parse(localStorage.getItem('colega-records-v1')) || {}; } catch { /* ignore */ }
+  try { records = JSON.parse(localStorage.getItem('ivan-records-v1') || localStorage.getItem('colega-records-v1')) || {}; } catch { /* ignore */ }
 
   MINIGAMES.forEach(game => {
     const hasEnergy = state.stats.energia >= game.energyCost;
@@ -805,7 +805,7 @@ function renderJuegos(el) {
   el.appendChild(hub);
 }
 
-// ---------- Interacción táctil con el personaje ----------
+// ---------- Interacción táctil con Iván ----------
 charEl.addEventListener('click', () => {
   if (state.durmiendo) return say(pick(CONFIG.frases.dormir));
   change('diversion', 2);
@@ -820,7 +820,7 @@ charEl.addEventListener('click', () => {
 
 // ---------- Inicio ----------
 function init() {
-  document.title = `Mi ${CONFIG.nombre}`;
+  document.title = 'Iván Pou';
   $('#stats').innerHTML = Object.entries(STATS)
     .map(([k, i]) => `<div class="stat">${i}<div class="bar"><i id="bar-${k}"></i></div></div>`).join('');
   $('#nav').innerHTML = Object.entries(ROOMS)
