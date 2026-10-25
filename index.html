@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <!-- viewport-fit=cover para usar toda la pantalla en móviles con notch -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#ffb347">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Mi Colega Iván</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="assets/ivan.png">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body data-room="cocina">
+  <div id="app">
+    <!-- HUD: barras de estado + nivel + monedas + sonido -->
+    <header id="hud">
+      <div id="stats"></div>
+      <div id="hud-right">
+        <div id="level-box" class="hud-pill" title="Nivel de tu colega">
+          ⭐ <span id="level-num">1</span>
+          <!-- Progreso de experiencia hasta el siguiente nivel -->
+          <span class="xp-track"><i id="xp-fill"></i></span>
+        </div>
+        <div id="coins-box" class="hud-pill">🪙 <span id="coins">0</span></div>
+        <button id="btn-audio" class="hud-btn" title="Silenciar / Activar sonido">🔊</button>
+      </div>
+    </header>
+
+    <!-- Habitación actual con el personaje y personajes secundarios -->
+    <main id="room">
+      <!-- Fondo con perspectiva 3D: Pared, Decoración temática, Zócalo y Suelo -->
+      <div id="room-backdrop" aria-hidden="true">
+        <div id="room-wall"></div>
+        <div id="room-decor"></div>
+        <div id="room-baseboard"></div>
+        <div id="room-floor"></div>
+      </div>
+
+      <h2 id="room-name"></h2>
+
+      <div id="char-wrap">
+        <!-- Chochi asomando al lado de Iván -->
+        <div id="chochi-wrap">
+          <div id="chochi-bubble">Venga dame un poco</div>
+          <img id="chochi-img" src="assets/chochi2.png" alt="Chochi" draggable="false">
+        </div>
+        <div id="bubble"></div>
+        <img id="char" alt="colega" draggable="false">
+        <div id="char-dirt"></div>
+        <div id="zzz-wrap"></div>
+        <!-- Sombra en el suelo bajo el personaje -->
+        <div id="char-shadow"></div>
+      </div>
+    </main>
+
+    <!-- Acciones de la habitación actual (se generan por JS) -->
+    <section id="actions"></section>
+
+    <!-- Navegación entre habitaciones -->
+    <nav id="nav"></nav>
+  </div>
+
+  <!-- Minijuego a pantalla completa -->
+  <div id="minigame" hidden>
+    <button id="mg-back-btn" class="mg-back-arrow" title="Salir del juego">◀ Salir</button>
+    <canvas></canvas>
+    <div id="mg-hud"></div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

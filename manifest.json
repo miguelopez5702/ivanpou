@@ -1,0 +1,10 @@
+{
+  "name": "Mi Colega Iván",
+  "short_name": "Iván",
+  "start_url": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffe8c2",
+  "theme_color": "#ffb347",
+  "icons": [{ "src": "assets/ivan.png", "sizes": "512x512", "type": "image/png" }]
+}

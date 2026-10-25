@@ -1,0 +1,655 @@
+/* ===== Variables y reset ===== */
+:root {
+  --good:#4cd964; --mid:#ffcc00; --bad:#ff3b30; --ui:#ffffffcc;
+  --ink:#2b2b2b; --radius:18px; --shadow:0 3px 0 #0002;
+}
+* { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; user-select:none; -webkit-user-select:none; }
+html, body { height:100%; overflow:hidden; font-family:system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; touch-action:manipulation; color:var(--ink); }
+[hidden] { display:none !important; }
+button { font-family:inherit; color:inherit; }
+
+/* Color base según la habitación */
+body { background:var(--bg); transition:background .4s; }
+body[data-room=cocina]     { --bg:#e2e8f0; }
+body[data-room=bano]       { --bg:#bae6fd; }
+body[data-room=dormitorio] { --bg:#1e1b4b; }
+body[data-room=juegos]     { --bg:#0f172a; }
+
+/* Luz apagada (durmiendo) */
+body.dark[data-room] { --bg:#090914; }
+body.dark #char { filter:brightness(.75) saturate(.85); }
+body.dark #room-name { color:#fff; background:#ffffff1a; }
+body.dark .room-hint { color:#fff; }
+
+#app { height:100dvh; max-width:500px; margin:auto; display:flex; flex-direction:column; }
+
+/* ===== HUD ===== */
+#hud { display:flex; gap:8px; align-items:center; padding:10px; padding-top:max(10px, env(safe-area-inset-top)); }
+#stats { flex:1; display:grid; grid-template-columns:1fr 1fr; gap:6px 8px; }
+.stat { display:flex; align-items:center; gap:4px; font-size:17px; }
+.bar { flex:1; height:10px; background:#0002; border-radius:6px; overflow:hidden; }
+.bar i { display:block; height:100%; border-radius:6px; transition:width .5s, background .5s; }
+/* Barra en estado crítico: parpadea para llamar la atención */
+.stat.low .bar { animation:lowPulse 1s ease-in-out infinite; }
+@keyframes lowPulse { 50% { box-shadow:0 0 0 3px #ff3b3055; } }
+
+#hud-right { display:flex; align-items:center; gap:6px; }
+.hud-pill { background:var(--ui); padding:5px 9px; border-radius:18px; font-weight:bold; font-size:13px;
+  display:flex; align-items:center; gap:4px; box-shadow:0 2px 0 #0001; white-space:nowrap; position:relative; }
+#level-box { background:#fff5d6; color:#b57800; padding-bottom:8px; }
+/* Mini barra de experiencia dentro del nivel */
+.xp-track { position:absolute; left:8px; right:8px; bottom:3px; height:3px; background:#0001; border-radius:2px; overflow:hidden; }
+.xp-track i { display:block; height:100%; width:0; background:#ffb300; transition:width .5s; }
+#coins-box { background:#fff8e7; }
+#coins-box.bump { animation:bump .45s ease-out; }
+@keyframes bump { 40% { transform:scale(1.18); } }
+.hud-btn {
+  border:0; background:var(--ui); font-size:16px; border-radius:50%; width:32px; height:32px;
+  display:flex; align-items:center; justify-content:center; box-shadow:0 2px 0 #0001; cursor:pointer;
+}
+.hud-btn:active { transform:scale(0.92); }
+
+/* Texto flotante de monedas ganadas / gastadas */
+.coin-float {
+  position:fixed; z-index:9999; pointer-events:none; font-weight:800; font-size:16px;
+  color:#1f9d3a; text-shadow:0 1px 0 #fff, 0 0 6px #fff; animation:coinFloat 1s ease-out forwards;
+  transform:translateX(-50%);
+}
+.coin-float.neg { color:#d6263b; }
+@keyframes coinFloat {
+  0% { opacity:0; transform:translate(-50%, 4px); }
+  15% { opacity:1; }
+  100% { opacity:0; transform:translate(-50%, 34px); }
+}
+
+/* Hub de Minijuegos en la sala de Juegos */
+.games-hub {
+  display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px; width:100%; max-width:440px; padding:4px;
+}
+.game-card {
+  background:var(--ui); border:1px solid #ffffffaa; border-radius:16px; padding:8px 10px;
+  display:flex; align-items:center; gap:8px; cursor:pointer; box-shadow:var(--shadow);
+  touch-action:manipulation; user-select:none; min-width:0; transition:opacity .2s;
+}
+.game-card:active { transform:translateY(2px); box-shadow:none; }
+.game-card.locked { opacity:.5; }
+.game-card-icon { font-size:28px; min-width:34px; text-align:center; }
+.game-card-info { flex:1; display:flex; flex-direction:column; min-width:0; }
+.game-card-info strong { font-size:12.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.game-card-info small { font-size:10px; color:#555; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.game-card-meta { display:flex; gap:6px; font-size:10px; font-weight:bold; margin-top:1px; white-space:nowrap; }
+.game-card-reward { color:#ff9500; overflow:hidden; text-overflow:ellipsis; }
+.game-card-cost { color:#7a5cff; }
+
+/* ===== Habitación y personaje ===== */
+#room { flex:1; position:relative; display:flex; align-items:center; justify-content:center; overflow:hidden; min-height:0; }
+
+/* ===== Fondo 3D con Perspectiva: Pared, Zócalo y Suelo ===== */
+#room-backdrop {
+  position:absolute; inset:0; pointer-events:none; z-index:0; overflow:hidden;
+}
+#room-wall {
+  position:absolute; top:0; left:0; right:0; height:74%;
+  transition:background .4s;
+}
+#room-decor {
+  position:absolute; top:0; left:0; right:0; height:74%;
+  z-index:1; pointer-events:none;
+}
+#room-baseboard {
+  position:absolute; top:74%; left:0; right:0; height:10px;
+  z-index:2; transition:background .4s;
+}
+#room-floor {
+  position:absolute; top:calc(74% + 10px); bottom:0; left:0; right:0;
+  z-index:1; transition:background .4s;
+}
+
+/* 1. COCINA: Pared azulejos blancos tipo metro + Suelo barro cocido en espiga */
+body[data-room=cocina] #room-wall {
+  background-color:#f8fafc;
+  background-image:
+    linear-gradient(#cbd5e1 1.5px, transparent 1.5px),
+    linear-gradient(90deg, #cbd5e1 1.5px, transparent 1.5px);
+  background-size:36px 18px;
+  box-shadow:inset 0 -25px 35px rgba(0,0,0,0.06);
+}
+body[data-room=cocina] #room-baseboard {
+  background:#cbd5e1;
+  box-shadow:0 3px 6px rgba(0,0,0,0.12), inset 0 2px 0 #fff;
+}
+body[data-room=cocina] #room-floor {
+  background:repeating-linear-gradient(45deg, #ea580c 0, #ea580c 20px, #c2410c 20px, #c2410c 40px);
+  box-shadow:inset 0 10px 18px rgba(0,0,0,0.22);
+}
+
+/* Estante rústico en cocina */
+.kitchen-shelf {
+  position:absolute; top:28px; left:22px; width:130px; height:34px;
+}
+.shelf-board {
+  position:absolute; bottom:0; left:0; right:0; height:8px;
+  background:#b45309; border-radius:3px;
+  box-shadow:0 4px 8px rgba(0,0,0,0.25), inset 0 2px 0 #d97706;
+}
+.shelf-board::after {
+  content:''; position:absolute; top:100%; left:16px; width:8px; height:10px; background:#78350f;
+  box-shadow:82px 0 0 #78350f;
+}
+.shelf-item {
+  position:absolute; bottom:8px; font-size:20px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.25));
+}
+
+/* 2. BAÑO: Azulejos celestes con junta y brillo + Espejo + Suelo gres antideslizante */
+body[data-room=bano] #room-wall {
+  background-color:#e0f2fe;
+  background-image:
+    linear-gradient(rgba(56, 189, 248, 0.25) 1.5px, transparent 1.5px),
+    linear-gradient(90deg, rgba(56, 189, 248, 0.25) 1.5px, transparent 1.5px);
+  background-size:28px 28px;
+  box-shadow:inset 0 -20px 30px rgba(14, 165, 233, 0.1);
+}
+body[data-room=bano] #room-baseboard {
+  background:#7dd3fc;
+  box-shadow:0 3px 6px rgba(0,0,0,0.1), inset 0 2px 0 #e0f2fe;
+}
+body[data-room=bano] #room-floor {
+  background-color:#0284c7;
+  background-image:
+    radial-gradient(circle at center, #38bdf8 18%, transparent 20%),
+    radial-gradient(circle at center, #38bdf8 18%, transparent 20%);
+  background-size:24px 24px;
+  background-position:0 0, 12px 12px;
+  box-shadow:inset 0 10px 18px rgba(0,0,0,0.25);
+}
+
+/* Espejo con bisel cromado */
+.bath-mirror {
+  position:absolute; top:36px; left:50%; transform:translateX(-50%);
+  width:130px; height:90px; border-radius:50px;
+  background:linear-gradient(135deg, #bae6fd 0%, #e0f2fe 50%, #7dd3fc 100%);
+  border:4px solid #f8fafc;
+  box-shadow:0 8px 18px rgba(14, 165, 233, 0.25), inset 0 0 12px rgba(255,255,255,0.7);
+  overflow:hidden;
+}
+.mirror-sheen {
+  position:absolute; top:-20px; left:-20px; width:170px; height:130px;
+  background:linear-gradient(115deg, transparent 40%, rgba(255,255,255,0.6) 48%, rgba(255,255,255,0.8) 52%, transparent 60%);
+}
+
+/* 3. DORMITORIO: Papel pintado azul profundo + Suelo tarima roble + Póster Rainbow Six Siege */
+body[data-room=dormitorio] #room-wall {
+  background-color:#312e81;
+  background-image:
+    radial-gradient(rgba(255,255,255,0.08) 1.5px, transparent 2px),
+    radial-gradient(rgba(255,255,255,0.05) 1.5px, transparent 2px);
+  background-size:24px 24px;
+  background-position:0 0, 12px 12px;
+  box-shadow:inset 0 -25px 40px rgba(0,0,0,0.35);
+}
+body[data-room=dormitorio] #room-baseboard {
+  background:#451a03;
+  box-shadow:0 4px 8px rgba(0,0,0,0.35), inset 0 2px 0 #78350f;
+}
+body[data-room=dormitorio] #room-floor {
+  background:repeating-linear-gradient(90deg, #92400e 0, #92400e 38px, #78350f 38px, #78350f 40px);
+  box-shadow:inset 0 12px 20px rgba(0,0,0,0.4);
+}
+
+/* Póster Rainbow Six Siege en el dormitorio */
+.r6-poster {
+  position:absolute; top:20px; right:22px; width:100px; height:125px;
+  background:linear-gradient(145deg, #18181b 0%, #09090b 100%);
+  border:3px solid #27272a; border-radius:6px;
+  box-shadow:0 8px 18px rgba(0,0,0,0.45), 0 2px 4px rgba(0,0,0,0.3);
+  transform:rotate(2.5deg);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:6px; overflow:hidden;
+}
+.r6-tape-l, .r6-tape-r {
+  position:absolute; top:-6px; width:26px; height:10px;
+  background:rgba(255, 240, 190, 0.65);
+  box-shadow:0 1px 3px rgba(0,0,0,0.2);
+}
+.r6-tape-l { left:-4px; transform:rotate(-22deg); }
+.r6-tape-r { right:-4px; transform:rotate(18deg); }
+.r6-badge {
+  font-size:32px; font-weight:900; color:#ffd700; line-height:1;
+  text-shadow:0 0 10px rgba(255, 215, 0, 0.5);
+  font-family:Impact, 'Arial Black', sans-serif;
+  letter-spacing:-1px;
+}
+.r6-title {
+  font-size:10px; font-weight:900; color:#fff; letter-spacing:1px; margin-top:4px;
+  text-align:center; text-shadow:0 1px 2px #000;
+}
+.r6-sub {
+  font-size:7.5px; font-weight:bold; color:#ff9500; letter-spacing:0.8px; margin-top:2px;
+  text-transform:uppercase; opacity:0.9;
+}
+
+/* Modo noche dormitorio (estrellas y luz apagada) */
+body.dark #room-wall {
+  background-color:#0f0e26 !important;
+  background-image:
+    radial-gradient(#ffffff77 1px, transparent 1.5px),
+    radial-gradient(#ffffff44 1px, transparent 1.5px) !important;
+  background-size:42px 42px, 28px 28px !important;
+  background-position:0 0, 14px 18px !important;
+}
+body.dark #room-baseboard { background:#1e1b4b !important; }
+body.dark #room-floor { background:#0a0918 !important; }
+body.dark .r6-poster { filter:brightness(0.35); }
+
+/* 4. JUEGOS: Loft oscuro / Taller gamer + Neón Alcoa Arcade + Suelo de goma industrial */
+body[data-room=juegos] #room-wall {
+  background-color:#0f172a;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.03) 2px, transparent 2px),
+    linear-gradient(90deg, rgba(255,255,255,0.03) 2px, transparent 2px);
+  background-size:44px 22px;
+  box-shadow:inset 0 -25px 40px rgba(0,0,0,0.5);
+}
+body[data-room=juegos] #room-baseboard {
+  background:#334155;
+  box-shadow:0 0 14px rgba(56, 189, 248, 0.4), inset 0 2px 0 #64748b;
+}
+body[data-room=juegos] #room-floor {
+  background-color:#090d16;
+  background-image:
+    repeating-radial-gradient(circle at 10px 10px, #1e293b 0, #1e293b 2.5px, transparent 3px, transparent 12px);
+  background-size:20px 20px;
+  box-shadow:inset 0 12px 22px rgba(0,0,0,0.55);
+}
+
+/* Neón gamer */
+.gaming-neon {
+  position:absolute; top:36px; left:50%; transform:translateX(-50%);
+  padding:6px 14px; border-radius:14px;
+  background:rgba(15, 23, 42, 0.85);
+  border:1.5px solid #00f0ff;
+  box-shadow:0 0 16px rgba(0, 240, 255, 0.45), inset 0 0 8px rgba(0, 240, 255, 0.25);
+  animation:neonFlicker 3s infinite alternate;
+}
+.neon-text {
+  font-size:12px; font-weight:900; letter-spacing:1.5px;
+  color:#fff; text-shadow:0 0 8px #00f0ff, 0 0 16px #00f0ff;
+}
+@keyframes neonFlicker {
+  0%, 100% { opacity:1; filter:brightness(1); }
+  45% { opacity:0.85; filter:brightness(0.9); }
+  47% { opacity:1; filter:brightness(1.1); }
+  85% { opacity:0.92; }
+}
+#room-name {
+  position:absolute; top:4px; font-size:13px; font-weight:800; letter-spacing:1px; text-transform:uppercase;
+  background:#ffffff80; padding:4px 12px; border-radius:12px; opacity:.75;
+}
+/* Pista de uso de cada habitación */
+.room-hint {
+  position:absolute; bottom:6px; left:0; right:0; text-align:center; font-size:12px; font-weight:600;
+  color:#fff; text-shadow:0 1px 3px rgba(0,0,0,0.85); opacity:.85; padding:0 20px; pointer-events:none;
+}
+
+#char-wrap {
+  position:relative; display:flex; align-items:center; justify-content:center; z-index:6;
+  transition:transform .45s cubic-bezier(.2,.9,.3,1.15);
+}
+/* Iván se aparta un poco cuando entra Chochi en escena */
+#char-wrap.guest { transform:translateX(22%); }
+
+#char {
+  position:relative; z-index:5; width:min(66vw, 300px, 40dvh); aspect-ratio:1; object-fit:contain;
+  filter:drop-shadow(0 8px 8px #0003); transition:filter .4s, scale .2s;
+  transform-origin:50% 100%;
+  animation:idle 3.4s ease-in-out infinite;
+  cursor:pointer;
+}
+@keyframes idle { 50% { transform:scale(.99, 1.015); } }
+
+/* Sombra en el suelo */
+#char-shadow {
+  position:absolute; bottom:2%; left:50%; width:58%; height:16px; transform:translateX(-50%);
+  background:radial-gradient(ellipse at center, #0003 0%, transparent 70%); z-index:0; pointer-events:none;
+}
+
+/* Bocadillo de Iván */
+#bubble {
+  position:absolute; bottom:calc(100% + 4px); left:50%; transform:translateX(-50%) scale(.85); transform-origin:50% 100%;
+  background:#fff; padding:8px 14px; border-radius:16px; width:max-content; max-width:min(78vw, 300px);
+  text-align:center; opacity:0; transition:opacity .2s, transform .2s cubic-bezier(.2,.9,.3,1.4);
+  pointer-events:none; box-shadow:0 4px 12px #0002; font-weight:bold; font-size:15px; line-height:1.25; z-index:15;
+}
+#bubble::after {
+  content:''; position:absolute; top:100%; left:50%; transform:translateX(-50%);
+  border:7px solid transparent; border-top-color:#fff;
+}
+#bubble.show { opacity:1; transform:translateX(-50%) scale(1); }
+
+/* Chochi asomando al lado de Iván, desde la izquierda */
+#chochi-wrap {
+  position:absolute;
+  left:-65px;
+  top:12px;
+  width:min(44vw, 175px);
+  z-index:8;
+  transform-origin:25% 90%;
+  transform:translate(-70px, 30px) scale(0.65) rotate(-20deg);
+  opacity:0;
+  pointer-events:none;
+  transition:transform .45s cubic-bezier(.2,.9,.3,1.25), opacity .3s ease-out;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+#chochi-wrap.active {
+  transform:translate(0, 0) scale(1) rotate(-6deg);
+  opacity:1;
+}
+#chochi-img {
+  display:block;
+  width:100%;
+  height:auto;
+  filter:drop-shadow(0 8px 14px rgba(0,0,0,0.35));
+  -webkit-mask-image:linear-gradient(to bottom, #000 82%, transparent 100%);
+  mask-image:linear-gradient(to bottom, #000 82%, transparent 100%);
+}
+/* Bocadillo de Chochi: centrado encima de su cabeza */
+#chochi-bubble {
+  background:#fff;
+  color:#111;
+  font-weight:bold;
+  font-size:13px;
+  padding:6px 12px;
+  border-radius:14px;
+  box-shadow:0 4px 12px rgba(0,0,0,0.25);
+  margin-bottom:6px;
+  white-space:nowrap;
+  opacity:0;
+  transform:scale(0.8);
+  transition:opacity 0.25s, transform 0.25s cubic-bezier(.2,.9,.3,1.4);
+  pointer-events:none;
+  position:relative;
+  z-index:25;
+}
+#chochi-bubble::after {
+  content:'';
+  position:absolute;
+  top:100%;
+  left:50%;
+  transform:translateX(-50%);
+  border:6px solid transparent;
+  border-top-color:#fff;
+}
+#chochi-bubble.show {
+  opacity:1;
+  transform:scale(1);
+}
+
+/* Manchas de grasa/suciedad de soldador (Alcoa) cuando baja la higiene */
+#char-dirt {
+  position:absolute; inset:10%; pointer-events:none; opacity:0; transition:opacity 0.5s ease-out; z-index:6;
+  background-image:
+    radial-gradient(ellipse 20px 14px at 30% 40%, rgba(30, 25, 20, 0.85) 0%, transparent 80%),
+    radial-gradient(ellipse 26px 18px at 65% 55%, rgba(40, 30, 20, 0.85) 0%, transparent 80%),
+    radial-gradient(ellipse 16px 12px at 45% 70%, rgba(20, 20, 20, 0.8) 0%, transparent 80%),
+    radial-gradient(ellipse 18px 10px at 70% 30%, rgba(45, 35, 25, 0.75) 0%, transparent 80%);
+  mix-blend-mode: multiply;
+  border-radius: 50%;
+}
+
+/* Letras Zzz flotantes al dormir */
+#zzz-wrap { position:absolute; top:-20px; right:10px; pointer-events:none; z-index:7; }
+.zzz-char {
+  position:absolute; color:#c9b6ff; font-size:26px; font-weight:bold; text-shadow:0 0 8px #8560db;
+  animation:floatZzz 2.4s infinite linear; opacity:0;
+}
+@keyframes floatZzz {
+  0% { transform:translate(0, 0) scale(0.6); opacity:0; }
+  25% { opacity:0.9; }
+  75% { opacity:0.8; }
+  100% { transform:translate(35px, -60px) scale(1.3); opacity:0; }
+}
+
+/* Notificación de Nivel Subido */
+.levelup-banner {
+  position:fixed; top:20%; left:50%; transform:translateX(-50%);
+  background:linear-gradient(135deg, #ffd700, #ff9500); color:#222;
+  font-weight:bold; font-size:20px; padding:12px 24px; border-radius:30px;
+  box-shadow:0 8px 24px rgba(255, 170, 0, 0.5); z-index:9999;
+  animation:bounceIn 0.5s ease-out; text-align:center; white-space:nowrap;
+}
+@keyframes bounceIn {
+  0% { transform:translateX(-50%) scale(0.4); opacity:0; }
+  60% { transform:translateX(-50%) scale(1.15); opacity:1; }
+  100% { transform:translateX(-50%) scale(1); }
+}
+
+/* ===== Botones y elementos arrastrables ===== */
+#actions { display:flex; gap:12px; justify-content:center; align-items:center; flex-wrap:wrap; padding:10px; min-height:96px; }
+.act { border:0; background:var(--ui); border-radius:var(--radius); padding:10px 16px; font-size:32px; display:flex;
+  flex-direction:column; align-items:center; box-shadow:var(--shadow); touch-action:none; cursor:grab; user-select:none; position:relative;
+  min-width:86px; transition:transform .1s; }
+.act:active { transform:scale(0.96); }
+.act small { font-size:12px; font-weight:bold; margin-top:2px; }
+
+/* Barra de nevera en la cocina con flechas */
+.fridge-bar { display:flex; align-items:center; justify-content:center; gap:10px; width:100%; max-width:380px; }
+.nav-arrow {
+  border:0; background:var(--ui); font-size:20px; font-weight:bold; width:44px; height:44px;
+  border-radius:50%; display:flex; align-items:center; justify-content:center;
+  box-shadow:var(--shadow); cursor:pointer; color:#333; touch-action:manipulation;
+}
+.nav-arrow:active { transform:translateY(2px); box-shadow:none; }
+.nav-arrow:disabled { opacity:0.3; cursor:default; transform:none; }
+
+.food-plate-wrap { position:relative; min-width:104px; display:flex; justify-content:center; }
+.food-plate-wrap .act { min-width:104px; }
+.food-badge {
+  position:absolute; top:-6px; right:-6px; background:#ff3b30; color:#fff;
+  font-size:12px; font-weight:bold; padding:2px 7px; border-radius:12px; border:2px solid #fff;
+}
+.empty-fridge { opacity:0.6; cursor:pointer; font-size:28px; }
+
+.btn-shop {
+  border:0; background:#ffd24c; border-radius:16px; padding:8px 12px; font-size:24px;
+  display:flex; flex-direction:column; align-items:center; box-shadow:var(--shadow); cursor:pointer;
+  touch-action:manipulation; font-weight:bold;
+}
+.btn-shop:active { transform:translateY(2px); box-shadow:none; }
+.btn-shop small { font-size:11px; }
+
+/* ===== Modal Tienda de Comida ===== */
+.modal-overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:100;
+  display:flex; align-items:flex-end; justify-content:center; animation:fadeIn 0.2s ease-out;
+}
+.modal-card {
+  background:#fff; width:100%; max-width:480px; max-height:80vh;
+  border-top-left-radius:24px; border-top-right-radius:24px;
+  display:flex; flex-direction:column; overflow:hidden;
+  animation:slideUp 0.25s ease-out;
+  padding-bottom:env(safe-area-inset-bottom);
+}
+@keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+@keyframes slideUp { from { transform:translateY(100%); } to { transform:translateY(0); } }
+
+.modal-header {
+  display:flex; justify-content:space-between; align-items:center; gap:10px; padding:14px 18px;
+  background:#f6f6f6; border-bottom:1px solid #eee;
+}
+.modal-header h3 { font-size:18px; margin:0; flex:1; }
+.modal-close {
+  border:0; background:#e9e9e9; font-size:16px; cursor:pointer; width:32px; height:32px; border-radius:50%; color:#555;
+}
+.shop-coins { font-weight:bold; color:#ff9500; font-size:15px; background:#fff3dc; padding:4px 10px; border-radius:12px; }
+
+.shop-list {
+  padding:14px; overflow-y:auto; display:flex; flex-direction:column; gap:10px;
+}
+.shop-item {
+  display:flex; align-items:center; gap:12px; background:#fafafa; border:1px solid #eee;
+  border-radius:14px; padding:10px 14px;
+}
+.shop-info { flex:1; display:flex; flex-direction:column; min-width:0; }
+.shop-info strong { font-size:16px; }
+.shop-info small { color:#666; font-size:12px; }
+.shop-info .owned { color:#007aff; font-size:12px; font-weight:bold; margin-top:2px; }
+.btn-buy {
+  border:0; background:#34c759; color:#fff; font-weight:bold; font-size:14px;
+  border-radius:12px; padding:8px 14px; box-shadow:0 2px 0 #0002; cursor:pointer;
+  touch-action:manipulation; white-space:nowrap;
+}
+.btn-buy:active { transform:scale(0.96); }
+.btn-buy:disabled { background:#ccc; cursor:not-allowed; }
+
+/* Objeto flotante al arrastrar con el dedo o ratón */
+.drag-ghost {
+  position:fixed;
+  pointer-events:none;
+  z-index:9999;
+  font-size:52px;
+  transform:translate(-50%, -50%) scale(1.2);
+  filter:drop-shadow(0 10px 14px rgba(0,0,0,0.35));
+  transition:opacity 0.2s;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.drag-ghost img {
+  width:72px;
+  height:72px;
+  object-fit:contain;
+  filter:drop-shadow(0 6px 12px rgba(0,0,0,0.4));
+}
+
+/* Imágenes de comida en la nevera y tienda */
+.food-thumb {
+  width:46px;
+  height:46px;
+  object-fit:contain;
+  pointer-events:none;
+  filter:drop-shadow(0 2px 5px rgba(0,0,0,0.25));
+}
+.shop-thumb {
+  width:48px;
+  height:48px;
+  object-fit:contain;
+}
+
+/* Botón especial de Farlopa (recuperar energía inmediata) */
+.act-farlopa {
+  background:linear-gradient(135deg, #ffffff, #fff0f3);
+  border:2px solid #ff2d55 !important;
+  box-shadow:0 4px 12px rgba(255, 45, 85, 0.3) !important;
+}
+.act-farlopa .food-thumb { border-radius:10px; }
+.act-farlopa .farlopa-tag { font-size:10px; color:#ff2d55; font-weight:bold; }
+.act-farlopa:active { transform:scale(0.95); }
+.act-farlopa.disabled { filter:grayscale(.8); opacity:.6; }
+
+/* Animación de subidón / euforia (sin auras de color sobre la foto) */
+.euphoria {
+  animation:euphoriaShake 0.35s 3 ease-in-out !important;
+}
+@keyframes euphoriaShake {
+  0%, 100% { transform:scale(1.1) rotate(0deg); }
+  25% { transform:scale(1.15) rotate(-6deg); }
+  75% { transform:scale(1.15) rotate(6deg); }
+}
+
+/* Partículas de burbujas y agua */
+.fx-particle {
+  position:fixed;
+  pointer-events:none;
+  z-index:9998;
+  font-size:26px;
+  animation:particleFloat 0.7s ease-out forwards;
+}
+@keyframes particleFloat {
+  0% { transform:translate(-50%, -50%) scale(0.6); opacity:1; }
+  100% { transform:translate(calc(-50% + (var(--dx, 0px))), calc(-50% - 40px)) scale(1.3); opacity:0; }
+}
+
+/* Efecto cuando arrastras sobre el personaje (sin auras de color) */
+#char-wrap.target-active #char {
+  scale:1.06;
+}
+
+/* ===== Navegación ===== */
+#nav { display:flex; background:var(--ui); padding:4px 6px; padding-bottom:max(4px, env(safe-area-inset-bottom)); gap:4px; }
+#nav button {
+  flex:1; border:0; background:none; font-size:26px; padding:8px 6px; opacity:.45; border-radius:14px;
+  position:relative; transition:opacity .2s, background .2s; cursor:pointer;
+}
+#nav button.on { opacity:1; background:#0000000d; }
+/* Punto rojo cuando la habitación tiene una necesidad urgente */
+#nav button.alert::after {
+  content:''; position:absolute; top:6px; right:calc(50% - 20px); width:10px; height:10px; border-radius:50%;
+  background:var(--bad); border:2px solid #fff; animation:lowPulse 1s infinite;
+}
+
+/* ===== Animaciones del personaje ===== */
+.bounce { animation:bounce .4s; }
+.eat    { animation:eat .3s 2; }
+.wash   { animation:wash .5s 2; }
+@keyframes bounce { 50% { transform:translateY(-30px) scale(1.05,.95); } }
+@keyframes eat    { 50% { transform:scale(1.1,.9); } }
+@keyframes wash   { 25% { transform:rotate(-8deg); } 75% { transform:rotate(8deg); } }
+
+/* ===== Minijuego ===== */
+#minigame { position:fixed; inset:0; z-index:10; background:#12161a; }
+#minigame canvas { width:100%; height:100%; display:block; touch-action:none; }
+/* El marcador va debajo de la fila del botón Salir para no solaparse */
+#mg-hud {
+  position:absolute; top:calc(max(12px, env(safe-area-inset-top)) + 44px); left:12px; right:12px;
+  text-align:center; color:#fff; pointer-events:none; text-shadow:0 1px 3px #0008;
+}
+
+/* Flecha para salir del minijuego cuando quieras */
+.mg-back-arrow {
+  position:absolute;
+  top:max(12px, env(safe-area-inset-top));
+  left:12px;
+  z-index:99;
+  border:1px solid rgba(255, 255, 255, 0.25);
+  background:rgba(0, 0, 0, 0.55);
+  color:#fff;
+  font-weight:bold;
+  font-size:13px;
+  padding:6px 12px;
+  border-radius:16px;
+  cursor:pointer;
+  touch-action:manipulation;
+  backdrop-filter:blur(4px);
+  -webkit-backdrop-filter:blur(4px);
+  display:flex;
+  align-items:center;
+  gap:4px;
+}
+.mg-back-arrow:active {
+  transform:scale(0.95);
+  background:rgba(0, 0, 0, 0.85);
+}
+
+/* Pantalla de resultados común a todos los minijuegos */
+.mg-result {
+  position:absolute; inset:0; z-index:120; display:flex; align-items:center; justify-content:center;
+  background:rgba(0,0,0,.5); animation:fadeIn .25s ease-out; padding:20px;
+}
+.mg-result-card {
+  background:#1b2027; color:#fff; border-radius:22px; padding:22px 20px; width:100%; max-width:320px;
+  text-align:center; box-shadow:0 12px 40px #0008; border:1px solid #ffffff14;
+  animation:bounceInCard .4s cubic-bezier(.2,.9,.3,1.3);
+}
+@keyframes bounceInCard { from { transform:scale(.7); opacity:0; } to { transform:scale(1); opacity:1; } }
+.mg-result-kicker { color:#ffd24c; font-size:12px; font-weight:800; letter-spacing:1px; margin-bottom:6px; }
+.mg-result-title { font-size:21px; font-weight:800; margin-bottom:10px; }
+.mg-result-line { font-size:15px; opacity:.9; margin-bottom:4px; }
+.mg-result-record { display:inline-block; margin-top:6px; font-size:12px; font-weight:800; color:#1b2027; background:#ffd24c; padding:3px 10px; border-radius:10px; }
+.mg-result-coins { font-size:26px; color:#4cd964; font-weight:800; margin:14px 0 16px; }
+.mg-result-btn {
+  border:0; background:#ffd24c; color:#1b2027; padding:12px 26px; font-weight:800; font-size:16px;
+  border-radius:14px; cursor:pointer; box-shadow:0 3px 0 #c99a10; width:100%;
+}
+.mg-result-btn:active { transform:translateY(2px); box-shadow:none; }
